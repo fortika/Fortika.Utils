@@ -38,16 +38,19 @@ Function New-FortikaPSFunction {
 
     PROCESS {
 
+        <#
         $Params = @{
             Param1 = "string";
             Param2 = @{ type="string"; mandatory=$true}
         }
+        #>
 
 
         $ParamArray = @()
 
-        $Params.Keys | ForEach-Object {
-            $ParamName = $_
+        foreach($param in $Params) {
+
+            $ParamName = $param
             $ParamType = $Params[$Paramname]
 
             if( $ParamType -is [hashtable]) {
@@ -55,10 +58,9 @@ Function New-FortikaPSFunction {
             } else {
                 # assume that value has the type
                 $ParamArray += $ParamArray + "[Parameter()]`r`n[${ParamType}]`$${ParamName}`r`n"
-            }
-
-            
+            }        
         }
+
 
         $FunctionTemplate = @"
 <#
