@@ -68,7 +68,7 @@ Function New-FortikaPSFunction {
 
 	.DESCRIPTION        
 
-    .PARAMETER Name        
+    .PARAMETER         
 
 	.EXAMPLE        
 
