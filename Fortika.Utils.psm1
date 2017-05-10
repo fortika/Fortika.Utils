@@ -5,3 +5,4 @@
 
 # make cmdlets available by exporting them.
 Get-ChildItem function: | ? { $_.Name -like '*Fortika*' -and $_.Name -notlike '_*' } | Select Name | ForEach-Object { Export-ModuleMember -Function $_.Name }
+
