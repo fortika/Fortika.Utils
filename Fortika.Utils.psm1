@@ -1,4 +1,4 @@
 
 # dot-source functions
-. .\functions\New-FortikaPSFunction.ps1
-. .\functions\Install-FortikaUtils.ps1
+. ${PSScriptRoot}\functions\New-FortikaPSFunction.ps1
+. ${PSScriptRoot}\functions\Install-FortikaUtils.ps1
