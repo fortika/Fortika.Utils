@@ -1,3 +1,6 @@
+# dot-source helpers
+. ${PSScriptRoot}\functions\helpers\helper_functions.ps1
+
 
 # dot-source functions
 . ${PSScriptRoot}\functions\New-FortikaPSFunction.ps1

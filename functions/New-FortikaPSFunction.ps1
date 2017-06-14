@@ -9,6 +9,14 @@
     .PARAMETER Name
         Name of the function
 
+    .PARAMETER Params
+        Hashtable of the parameters for the function.
+
+        $Params = @{
+            Param1 = "string";
+            Param2 = @{ type="string"; Parameter=@{ mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ValidateSet="'alt1','alt2','alt3'"} }
+        }
+
 	.EXAMPLE
         New-FortikaPSFunction -Name New-Stuff
 
@@ -24,16 +32,67 @@ Function New-FortikaPSFunction {
         [string]$Name
 
         ,[Parameter(Mandatory=$False)]
-        [hashtable]$Synposis
+        [string]$Synposis
 
         ,[Parameter(Mandatory=$False)]
-        [hashtable]$Description
+        [string]$Description
+
+        ,[Parameter(Mandatory=$False)]
+        [string]$Notes
+
+        ,[Parameter(Mandatory=$False)]
+        [string]$Link
 
         ,[Parameter(Mandatory=$False)]
         [hashtable]$Params
+
+        ,[Parameter(Mandatory=$False)]
+        [switch]$AddDummyOutput
     )
 
     BEGIN {
+        $FunctionTemplate = @"
+<#
+	.SYNOPSIS        
+        %HELP_SYNOPSIS%
+	.DESCRIPTION        
+        %HELP_DESCRIPTION%
+    .PARAMETER         
+
+	.EXAMPLE        
+
+	.NOTES
+        %HELP_NOTES%
+	.LINK
+        %HELP_LINK%
+#>
+Function %FUNCTIONNAME% {
+    [cmdletBinding()]
+    Param(
+%PARAMETERS%
+    )
+
+    BEGIN {
+		# If -debug is set, change `$DebugPreference so that output is a little less annoying.
+		#	http://learn-powershell.net/2014/06/01/prevent-write-debug-from-bugging-you/
+		If (`$PSBoundParameters['Debug']) {
+			`$DebugPreference = 'Continue'
+		}
+
+%BEGINCODEBLOCK%
+    }
+
+    PROCESS {
+%PROCESSCODEBLOCK%
+    }
+
+    END {
+%ENDCODEBLOCK%
+    }
+}
+
+"@
+
     }
 
     PROCESS {
@@ -41,66 +100,172 @@ Function New-FortikaPSFunction {
         <#
         $Params = @{
             Param1 = "string";
-            Param2 = @{ type="string"; mandatory=$true}
+            Param2 = @{ type="string"; Parameter=@{ mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ValidateSet="'alt1','alt2','alt3'"} }
         }
         #>
 
 
+        # Handle the parameters...
         $ParamArray = @()
 
-        foreach($param in $Params) {
+        foreach($param in $Params.Keys) {
 
             $ParamName = $param
-            $ParamType = $Params[$Paramname]
+            $ParamData = $Params[$param]
 
-            if( $ParamType -is [hashtable]) {
-                
-            } else {
+            # Check if the parameter data is an advaned parameter
+            if( $ParamData -is [hashtable]) {
+
+                # yes, advanced parameter. The parameter type should be in key "Type"
+                $ParamType = $ParamData["Type"]
+                if($ParamType) {
+                    
+                    # The rest should be in key "Parameter" which also is a hashtable
+
+                    # Initialize the parameter block string
+                    $ParameterBlockString = "[Parameter("
+
+                    $ParameterBlock = $ParamData["Parameter"]
+                    if($ParameterBlock -and $ParameterBlock -is [hashtable]) {
+                        
+                        # loop all key/values in the parameter block.
+                        # the keys are the parameter attributes. See get-help about_Functions_Advanced_Parameters
+
+                        # inspired by https://stackoverflow.com/questions/9015138/powershell-looping-through-a-hash-or-using-an-array
+                        # Create a string for each key/value-pair on the format:
+                        # key=value
+                        # Ex. Mandatory=$true
+                        #
+                        # use .ToString() to handle that the value can be a boolean or integer etc.
+                        # Join the resulting collection to a string separated with comma.
+                        #                        
+                        # "A one-liner a day keeps the alzheimers away"
+                        #$ParameterBlockString += ($ParameterBlock.Keys | ForEach-Object { "$($_)=$($ParameterBlock.item($_).ToString())" }) -join ","
+                        # would have been nice, but need to handle variable types here too :/
+
+                        # this is much clearer than a one-liner :)
+                        $ParameterBlockString += ($ParameterBlock.Keys | `
+                            ForEach-Object { 
+                                $BlockItem = $_
+
+                                switch( (($ParameterBlock.item($BlockItem)).GetType()).Name ) {
+                                    "Boolean" {
+                                        "$($BlockItem)=`$$($ParameterBlock.item($BlockItem).ToString())" 
+                                    }
+                                    "String" {
+                                        "$($BlockItem)=`"$($ParameterBlock.item($BlockItem).ToString())`"" 
+                                    }
+                                    Default {
+                                        "$($BlockItem)=$($ParameterBlock.item($BlockItem).ToString())"                                         
+                                    }
+                                }
+                            }) -join ",`r`n`t`t`t`t"
+
+
+                        <#
+                        foreach($blockitem in $ParameterBlock.Keys) {
+
+                            # use .ToString() to handle that the value can be a boolean or integer etc.
+                            $BlockItemValue = $ParameterBlock[$blockitem].ToString()
+
+                            $ParameterBlockString += "${blockitem}=${BlockItemValue}"
+                        }
+                        #>
+
+                    } else {
+                        Write-Warning "No parameter block found for $ParamName or it's not defined as a hashtable."
+                    }
+
+                    $ParameterBlockString += ")]"
+
+
+                    $ParameterExtras = $ParamData["Extras"]
+                    $ParameterExtrasString = ""
+                    If($ParameterExtras -and $ParameterExtras -is [hashtable]) {
+                    
+                        # ($h.keys | ForEach-Object { "$($_)=('$($h.item($_))')" })  -join ","
+                        # [alias("CN","MachineName")]
+                        $ParameterExtrasString = ($ParameterExtras.keys | ForEach-Object { "`t`t[$($_)($($ParameterExtras.item($_)))]" })  -join "`r`n"
+                    }
+
+                    if($ParameterExtrasString) {
+                        $ParamArray += "`t`t${ParameterBlockString}`r`n$ParameterExtrasString`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                    } else {
+                        $ParamArray += "`t`t${ParameterBlockString}`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                    }                    
+
+                } else {
+                    Write-Warning "Could not find parameter type for $ParamName"
+                }                
+            } elseif( $ParamData -is [string]) {
                 # assume that value has the type
-                $ParamArray += $ParamArray + "[Parameter()]`r`n[${ParamType}]`$${ParamName}`r`n"
-            }        
+                $ParamType = $ParamData
+
+                $ParamArray += "[Parameter()]`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+
+            } else {
+                Write-Warning "Unknown type for parameter $ParamName"
+            }
+        }
+
+        if($AddDummyOutput) {
+            $BeginCodeBlock = @"
+
+        Write-Host `"Dummy output from `$(`$PSCmdlet.MyInvocation.InvocationName)`"
+
+"@
         }
 
 
-        $FunctionTemplate = @"
+        $FunctionTemplate | _Expand-VariablesInString -VariableMappings @{
+                                                                            FUNCTIONNAME=$Name;
+                                                                            PARAMETERS=$($ParamArray -join "`r`n`t`t,");
+                                                                            BEGINCODEBLOCK=$BeginCodeBlock;
+                                                                            PROCESSCODEBLOCK=$ProcessCodeBlock;
+                                                                            ENDCODEBLOCK=$EndCodeBlock;
+                                                                            HELP_SYNOPSIS="${Synposis}`r`n";
+                                                                            HELP_DESCRIPTION="${Description}`r`n"
+                                                                            HELP_LINK="${Link}`r`n";
+                                                                            HELP_NOTES="${Notes}`r`n"
+                                                                        }
+    }
+
+    END {
+    }
+}
+
+
+Remove-Variable ParamHash
+# [ordered] to get it in the correct order
+$ParamHash = [ordered]@{
+        help="string";
+        AdvParameter = @{ Type="string";                
+        }
+    }
+
+Remove-Variable ParamHash
+$ParamHash = @{
+        help="string";
+        AdvParameter = @{ Type="string"; 
+                Parameter=@{ Mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ ValidateSet="'alt1','alt2','alt3'"; Alias="'p1','p2'"} 
+        }
+    }
+
+$ParamHash
+New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
+                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
+                        -Params $ParamHash
+
+
 <#
-	.SYNOPSIS        
 
-	.DESCRIPTION        
+New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
+                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
+                        -Params @{ help="string"}
 
-    .PARAMETER         
 
-	.EXAMPLE        
-
-	.NOTES
-
-	.LINK
+New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
+                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
+                        -Params @{ help="string"}
 
 #>
-Function $Name {
-    [cmdletBinding()]
-    Param(
-        $($ParamArray -join ",")
-    )
-
-    BEGIN {
-    }
-
-    PROCESS {
-    }
-
-    END {
-    }
-}
-
-"@
-
-    $FunctionTemplate
-
-
-    }
-
-    END {
-    }
-}
-
