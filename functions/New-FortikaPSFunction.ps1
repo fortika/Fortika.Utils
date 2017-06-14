@@ -13,12 +13,40 @@
         Hashtable of the parameters for the function.
 
         $Params = @{
-            Param1 = "string";
-            Param2 = @{ type="string"; Parameter=@{ mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ValidateSet="'alt1','alt2','alt3'"} }
-        }
+                help="string";
+                AdvParameter = @{ Type="string"; 
+                        Parameter=@{ Mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ ValidateSet="'alt1','alt2','alt3'"; Alias="'p1','p2'"} 
+                }
+            }
 
 	.EXAMPLE
         New-FortikaPSFunction -Name New-Stuff
+
+	.EXAMPLE
+        New-FortikaPSFunction -Name Get-Stuff -Params @{
+                StringParam="string";
+                AdvParameter = @{ Type="string"; 
+                        Parameter=@{ 
+                            Mandatory=$true;
+                            ValueFromPipelineByPropertyName=$True; HelpMessage="help";
+                        };
+                        Extras=@{ 
+                            ValidateSet="'alt1','alt2','alt3'";
+                            Alias="'p1','p2'"
+                        } 
+                }
+            }
+
+        Creates a function called Get-Stuff with 2 parameters
+        Parameter StringParam as a simple parameter of type string
+        Parameter AdvParam as an advanced parameter with the following properties
+            [Parameter(Mandatory=$True,
+				    ValueFromPipelineByPropertyName=$True,
+				    HelpMessage="help")]
+		    [Alias('p1','p2')]
+		    [ValidateSet('alt1','alt2','alt3')]
+		    [string]$AdvParameter
+
 
 	.NOTES
 
@@ -233,39 +261,3 @@ Function %FUNCTIONNAME% {
     END {
     }
 }
-
-
-Remove-Variable ParamHash
-# [ordered] to get it in the correct order
-$ParamHash = [ordered]@{
-        help="string";
-        AdvParameter = @{ Type="string";                
-        }
-    }
-
-Remove-Variable ParamHash
-$ParamHash = @{
-        help="string";
-        AdvParameter = @{ Type="string"; 
-                Parameter=@{ Mandatory=$true; ValueFromPipelineByPropertyName=$True; HelpMessage="help" }; Extras=@{ ValidateSet="'alt1','alt2','alt3'"; Alias="'p1','p2'"} 
-        }
-    }
-
-$ParamHash
-New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
-                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
-                        -Params $ParamHash
-
-
-<#
-
-New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
-                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
-                        -Params @{ help="string"}
-
-
-New-FortikaPSFunction   -Name "Test-FunctionXX" -AddDummyOutput -Description "descr" `
-                        -Synposis "syn" -Notes "notes" -Link "https://sdfsdf.com/sdf" `
-                        -Params @{ help="string"}
-
-#>
