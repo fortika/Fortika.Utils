@@ -100,6 +100,8 @@ Function %FUNCTIONNAME% {
 %PARAMETERS%
     )
 
+    # Generated with New-FortikaPSFunction
+
     BEGIN {
 		# If -debug is set, change `$DebugPreference so that output is a little less annoying.
 		#	http://learn-powershell.net/2014/06/01/prevent-write-debug-from-bugging-you/
