@@ -1,16 +1,28 @@
 <#
 	.SYNOPSIS
-        Creates and initializes a new module
+        Creates and initializes a new module.
 
 	.DESCRIPTION
+		Creates and initializes a new module by creating a directory and setting up a module file
+		and a manifest.
+		It also creates a directory structure to hold function files.
+		The module is written to the current directory if not parameter Path is specified.
 
 	.PARAMETER Name
+		Name of the module.
 
 	.PARAMETER Path
 
+	.PARAMETER Function
+		Adds a skeleton for each function name.
+		Multiple function names can be specified.
+	
 	.EXAMPLE
-        New-FortikaPSModule
+        New-FortikaPSModule -Name My.Module
 
+	.EXAMPLE
+        New-FortikaPSModule -Name My.Module -Function "Test-Function1","New-Function2"
+		
 	.NOTES
 
 	.LINK
@@ -198,6 +210,9 @@ Function New-FortikaPSModule {
         ,[Parameter(Mandatory=$False)]
 		[string]$Prefix
 
+        ,[Parameter(Mandatory=$False)]
+		[string[]]$Function
+
 		,[Parameter(Mandatory=$False)]
 		[string]$Path
 
@@ -245,6 +260,21 @@ Function New-FortikaPSModule {
 		Write-Verbose "Writing manifest update function to $ManifestUpdatePath"
 		
         $ManifestUpdateFunction | _Expand-VariablesInString -VariableMappings $VarMappings | Set-Content -Path $ManifestUpdatePath
+		
+		
+		If($Function) {
+            # Generate function skeletons
+			foreach($func in $Function) {
+				Write-Verbose "Creating skeleton function $func"
+                $FunctionPath = Join-Path -Path "$OutputPath\functions" -ChildPath "${func}.ps1"
+                if(-Not $(Test-Path -Path $FunctionPath)) {
+				    New-FortikaPSFunction -Name $func -AddDummyOutput | Set-Content -Path $FunctionPath
+                } else {
+                    Write-Warning "$FunctionPath already exits!"
+                }
+			}
+		}
+		
 		
 		$ModuleRootFunctionPath = Join-Path -Path $OutputPath -ChildPath "${Name}.psm1"
 		Write-Verbose "Writing module file to $ModuleRootFunctionPath"
