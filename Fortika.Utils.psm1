@@ -4,6 +4,7 @@
 
 # dot-source functions
 . ${PSScriptRoot}\functions\New-FortikaPSFunction.ps1
+. ${PSScriptRoot}\functions\New-FortikaPSModule.ps1
 . ${PSScriptRoot}\functions\Install-FortikaUtils.ps1
 
 # make cmdlets available by exporting them.

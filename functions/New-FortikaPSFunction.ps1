@@ -76,19 +76,21 @@ Function New-FortikaPSFunction {
 
         ,[Parameter(Mandatory=$False)]
         [switch]$AddDummyOutput
+
+        ,[Parameter(Mandatory=$False)]
+        [switch]$SkipBeginProcessEnd
     )
 
     BEGIN {
         $FunctionTemplate = @"
 <#
-	.SYNOPSIS        
+	.SYNOPSIS
         %HELP_SYNOPSIS%
-	.DESCRIPTION        
+	.DESCRIPTION
         %HELP_DESCRIPTION%
-    .PARAMETER         
-
-	.EXAMPLE        
-
+%HELP_PARAMETERBLOCK%
+	.EXAMPLE
+        %HELP_EXAMPLE%
 	.NOTES
         %HELP_NOTES%
 	.LINK
@@ -122,7 +124,6 @@ Function %FUNCTIONNAME% {
 }
 
 "@
-
     }
 
     PROCESS {
@@ -222,7 +223,9 @@ Function %FUNCTIONNAME% {
                         $ParamArray += "`t`t${ParameterBlockString}`r`n$ParameterExtrasString`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
                     } else {
                         $ParamArray += "`t`t${ParameterBlockString}`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
-                    }                    
+                    }
+
+                    $Help_ParameterBlock += "`t.PARAMETER ${ParamName}`r`n`r`n"
 
                 } else {
                     Write-Warning "Could not find parameter type for $ParamName"
@@ -231,7 +234,9 @@ Function %FUNCTIONNAME% {
                 # assume that value has the type
                 $ParamType = $ParamData
 
-                $ParamArray += "[Parameter()]`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                $ParamArray += "[Parameter(Mandatory=`$False)]`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+
+                $Help_ParameterBlock += "`t.PARAMETER ${ParamName}`r`n`r`n"
 
             } else {
                 Write-Warning "Unknown type for parameter $ParamName"
@@ -254,9 +259,11 @@ Function %FUNCTIONNAME% {
                                                                             PROCESSCODEBLOCK=$ProcessCodeBlock;
                                                                             ENDCODEBLOCK=$EndCodeBlock;
                                                                             HELP_SYNOPSIS="${Synposis}`r`n";
-                                                                            HELP_DESCRIPTION="${Description}`r`n"
+                                                                            HELP_DESCRIPTION="${Description}`r`n";
+                                                                            HELP_PARAMETERBLOCK="${Help_ParameterBlock}`r`n";
+                                                                            HELP_EXAMPLE="${Name}`r`n";
                                                                             HELP_LINK="${Link}`r`n";
-                                                                            HELP_NOTES="${Notes}`r`n"
+                                                                            HELP_NOTES="${Notes}`r`n";
                                                                         }
     }
 
