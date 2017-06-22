@@ -216,6 +216,11 @@ Function New-FortikaPSModule {
 		,[Parameter(Mandatory=$False)]
 		[string]$Path
 
+        ,[Parameter(Mandatory=$False)]
+        [switch]$SkipGitIgnore
+
+        ,[Parameter(Mandatory=$False)]
+        [switch]$SkipInit
     )
 
     # Generated with New-FortikaPSFunction
@@ -284,6 +289,24 @@ Function New-FortikaPSModule {
 		& $ManifestUpdatePath
 
 
+
+        if(-Not $SkipInit) {
+
+            $VarMappings = @{
+                MODULENAME=$Name;
+                INITCOMMAND=$PSCmdlet.MyInvocation.Line
+            }            
+
+            "# Module %MODULENAME% was created with`r`n%INITCOMMAND%" | _Expand-VariablesInString -VariableMappings $VarMappings | Set-Content -Path $(Join-Path -Path $OutputPath -ChildPath "_init.ps1")            
+
+            $GitIgnoreData = "_init.ps1"
+        } else {
+            $GitIgnoreData = ""
+        }
+
+        if(-Not $SkipGitIgnore) {
+            $GitIgnoreData | Set-Content -Path $(Join-Path -Path $OutputPath -ChildPath ".gitignore")
+        }
     }
 
     PROCESS {
