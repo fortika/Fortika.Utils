@@ -54,13 +54,13 @@
 
 #>
 Function New-FortikaPSFunction {
-    [cmdletBinding()]
+    [cmdletBinding(SupportsShouldProcess=$True,ConfirmImpact="High")]
     Param(
         [Parameter(Mandatory=$True)]
         [string]$Name
 
         ,[Parameter(Mandatory=$False)]
-        [string]$Synposis
+        [string]$Synopsis
 
         ,[Parameter(Mandatory=$False)]
         [string]$Description
@@ -79,6 +79,10 @@ Function New-FortikaPSFunction {
 
         ,[Parameter(Mandatory=$False)]
         [switch]$SkipBeginProcessEnd
+
+        ,[Parameter(Mandatory=$False
+                   ,HelpMessage="If specified writes the function to a file or directory with automatic file name.")]
+        [string]$Path
     )
 
     BEGIN {
@@ -102,7 +106,7 @@ Function %FUNCTIONNAME% {
 %PARAMETERS%
     )
 
-    # Generated with New-FortikaPSFunction
+    # Generated with %GENERATEDBY%
 
     BEGIN {
 		# If -debug is set, change `$DebugPreference so that output is a little less annoying.
@@ -252,19 +256,66 @@ Function %FUNCTIONNAME% {
         }
 
 
-        $FunctionTemplate | _Expand-VariablesInString -VariableMappings @{
+        $FunctionData = $FunctionTemplate | _Expand-VariablesInString -VariableMappings @{
+                                                                            GENERATEDBY=$PSCmdlet.MyInvocation.Line;
                                                                             FUNCTIONNAME=$Name;
                                                                             PARAMETERS=$($ParamArray -join "`r`n`t`t,");
                                                                             BEGINCODEBLOCK=$BeginCodeBlock;
                                                                             PROCESSCODEBLOCK=$ProcessCodeBlock;
                                                                             ENDCODEBLOCK=$EndCodeBlock;
-                                                                            HELP_SYNOPSIS="${Synposis}`r`n";
-                                                                            HELP_DESCRIPTION="${Description}`r`n";
+                                                                            HELP_SYNOPSIS="${Synopsis}";
+                                                                            HELP_DESCRIPTION="${Description}";
                                                                             HELP_PARAMETERBLOCK="${Help_ParameterBlock}`r`n";
                                                                             HELP_EXAMPLE="${Name}`r`n";
-                                                                            HELP_LINK="${Link}`r`n";
-                                                                            HELP_NOTES="${Notes}`r`n";
+                                                                            HELP_LINK="${Link}";
+                                                                            HELP_NOTES="${Notes}";
                                                                         }
+    
+        if($Path) {
+        
+            try {
+                # check if Path is a directory.
+                # If so, write the output to a file, named as the function name with extension .ps1.
+                # If Path is a file, then write it there.
+                # If Path does not exist, then assume it's a file.
+
+                # get the "item"
+                $FileItem = Get-Item -Path $Path -ErrorAction stop
+
+                if($FileItem.PSIsContainer) {
+                    $OutputPath = Join-Path -Path $Path -ChildPath "${Name}.ps1"
+                } else {
+                    $OutputPath = $Path
+                }
+                
+                $WriteFile = $False
+                # Show a confirmation if $OutputPath exists
+                if($(Test-Path -Path $OutputPath)) {
+                    if($PSCmdlet.ShouldProcess("$OutputPath","Overwrite")) {                        
+                        $WriteFile = $True
+                    }
+                } else {
+                    $WriteFile = $true
+                }
+
+                If($WriteFile) {
+                    try {
+                        Write-Verbose "Writing output to $OutputPath"
+                        $FunctionData | Set-Content -Path $OutputPath -ErrorAction stop
+                    }
+                    catch {
+                        Throw "Could not write output to {0}" -f $OutputPath
+                    }
+                }
+
+            }
+            catch {
+                Throw "Cant output to $Path"
+            }
+
+        } else {
+            $FunctionData
+        }
     }
 
     END {
