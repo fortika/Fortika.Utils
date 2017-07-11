@@ -47,6 +47,8 @@
 		    [ValidateSet('alt1','alt2','alt3')]
 		    [string]$AdvParameter
 
+    .PARAMETER OutputType
+        If specified adds an output type for the returned data.
 
 	.NOTES
 
@@ -75,6 +77,9 @@ Function New-FortikaPSFunction {
         [hashtable]$Params
 
         ,[Parameter(Mandatory=$False)]
+        [string]$OutputType
+
+        ,[Parameter(Mandatory=$False)]
         [switch]$AddDummyOutput
 
         ,[Parameter(Mandatory=$False)]
@@ -101,7 +106,7 @@ Function New-FortikaPSFunction {
         %HELP_LINK%
 #>
 Function %FUNCTIONNAME% {
-    [cmdletBinding()]
+    [cmdletBinding()]%OUTPUTTYPEBLOCK%
     Param(
 %PARAMETERS%
     )
@@ -255,6 +260,13 @@ Function %FUNCTIONNAME% {
 "@
         }
 
+        if($OutputType) {
+            # not pretty...
+            $OutputTypeBlock = "`r`n`t[OutputType([$OutputType])]`r`n"
+        } else {
+            $OutputTypeBlock  = ""
+        }
+
 
         $FunctionData = $FunctionTemplate | _Expand-VariablesInString -VariableMappings @{
                                                                             GENERATEDBY=$PSCmdlet.MyInvocation.Line;
@@ -263,6 +275,7 @@ Function %FUNCTIONNAME% {
                                                                             BEGINCODEBLOCK=$BeginCodeBlock;
                                                                             PROCESSCODEBLOCK=$ProcessCodeBlock;
                                                                             ENDCODEBLOCK=$EndCodeBlock;
+                                                                            OUTPUTTYPEBLOCK=$OutputTypeBlock
                                                                             HELP_SYNOPSIS="${Synopsis}";
                                                                             HELP_DESCRIPTION="${Description}";
                                                                             HELP_PARAMETERBLOCK="${Help_ParameterBlock}`r`n";
@@ -307,7 +320,6 @@ Function %FUNCTIONNAME% {
                         Throw "Could not write output to {0}" -f $OutputPath
                     }
                 }
-
             }
             catch {
                 Throw "Cant output to $Path"
