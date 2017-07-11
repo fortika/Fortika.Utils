@@ -88,6 +88,11 @@ Function New-FortikaPSFunction {
         ,[Parameter(Mandatory=$False
                    ,HelpMessage="If specified writes the function to a file or directory with automatic file name.")]
         [string]$Path
+
+        ,[Parameter(Mandatory=$False
+                   ,HelpMessage="Number of spaces per tab")]
+        [int]$NumTabSpaces=4
+
     )
 
     BEGIN {
@@ -278,12 +283,13 @@ Function %FUNCTIONNAME% {
                                                                             OUTPUTTYPEBLOCK=$OutputTypeBlock
                                                                             HELP_SYNOPSIS="${Synopsis}";
                                                                             HELP_DESCRIPTION="${Description}";
-                                                                            HELP_PARAMETERBLOCK="${Help_ParameterBlock}`r`n";
+                                                                            HELP_PARAMETERBLOCK="${Help_ParameterBlock}";
                                                                             HELP_EXAMPLE="${Name}`r`n";
                                                                             HELP_LINK="${Link}";
                                                                             HELP_NOTES="${Notes}";
                                                                         }
-    
+        $FunctionData = ($FunctionData -replace "`t",("".PadLeft($NumTabSpaces," "))).trim()
+
         if($Path) {
         
             try {
