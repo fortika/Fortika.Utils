@@ -204,7 +204,7 @@ Function %FUNCTIONNAME% {
                                         "$($BlockItem)=$($ParameterBlock.item($BlockItem).ToString())"                                         
                                     }
                                 }
-                            }) -join ",`r`n`t`t`t`t"
+                            }) -join ",`r`n"
 
 
                         <#
@@ -230,16 +230,16 @@ Function %FUNCTIONNAME% {
                     
                         # ($h.keys | ForEach-Object { "$($_)=('$($h.item($_))')" })  -join ","
                         # [alias("CN","MachineName")]
-                        $ParameterExtrasString = ($ParameterExtras.keys | ForEach-Object { "`t`t[$($_)($($ParameterExtras.item($_)))]" })  -join "`r`n"
+                        $ParameterExtrasString = ($ParameterExtras.keys | ForEach-Object { "[$($_)($($ParameterExtras.item($_)))]" })  -join "`r`n"
                     }
 
                     if($ParameterExtrasString) {
-                        $ParamArray += "`t`t${ParameterBlockString}`r`n$ParameterExtrasString`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                        $ParamArray += "${ParameterBlockString}`r`n$ParameterExtrasString`r`n[${ParamType}]`$${ParamName}`r`n"
                     } else {
-                        $ParamArray += "`t`t${ParameterBlockString}`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                        $ParamArray += "${ParameterBlockString}`r`n[${ParamType}]`$${ParamName}`r`n"
                     }
 
-                    $Help_ParameterBlock += "`t.PARAMETER ${ParamName}`r`n`r`n"
+                    $Help_ParameterBlock += ".PARAMETER ${ParamName}`r`n`r`n"
 
                 } else {
                     Write-Warning "Could not find parameter type for $ParamName"
@@ -248,9 +248,9 @@ Function %FUNCTIONNAME% {
                 # assume that value has the type
                 $ParamType = $ParamData
 
-                $ParamArray += "[Parameter(Mandatory=`$False)]`r`n`t`t[${ParamType}]`$${ParamName}`r`n"
+                $ParamArray += "[Parameter(Mandatory=`$False)]`r`n[${ParamType}]`$${ParamName}`r`n"
 
-                $Help_ParameterBlock += "`t.PARAMETER ${ParamName}`r`n`r`n"
+                $Help_ParameterBlock += ".PARAMETER ${ParamName}`r`n`r`n"
 
             } else {
                 Write-Warning "Unknown type for parameter $ParamName"
@@ -267,7 +267,7 @@ Function %FUNCTIONNAME% {
 
         if($OutputType) {
             # not pretty...
-            $OutputTypeBlock = "`r`n`t[OutputType([$OutputType])]`r`n"
+            $OutputTypeBlock = "`r`n`t[OutputType([$OutputType])]"
         } else {
             $OutputTypeBlock  = ""
         }
@@ -276,7 +276,7 @@ Function %FUNCTIONNAME% {
         $FunctionData = $FunctionTemplate | _Expand-VariablesInString -VariableMappings @{
                                                                             GENERATEDBY=$PSCmdlet.MyInvocation.Line;
                                                                             FUNCTIONNAME=$Name;
-                                                                            PARAMETERS=$($ParamArray -join "`r`n`t`t,");
+                                                                            PARAMETERS=$($ParamArray -join "`r`n,");
                                                                             BEGINCODEBLOCK=$BeginCodeBlock;
                                                                             PROCESSCODEBLOCK=$ProcessCodeBlock;
                                                                             ENDCODEBLOCK=$EndCodeBlock;
