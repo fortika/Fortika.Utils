@@ -299,7 +299,8 @@ Function %FUNCTIONNAME% {
                 # If Path does not exist, then assume it's a file.
 
                 # get the "item"
-                $FileItem = Get-Item -Path $Path -ErrorAction stop
+		# ignore errors
+                $FileItem = Get-Item -Path $Path -ErrorAction SilentlyContinue
 
                 if($FileItem.PSIsContainer) {
                     $OutputPath = Join-Path -Path $Path -ChildPath "${Name}.ps1"
@@ -323,12 +324,12 @@ Function %FUNCTIONNAME% {
                         $FunctionData | Set-Content -Path $OutputPath -ErrorAction stop
                     }
                     catch {
-                        Throw "Could not write output to {0}" -f $OutputPath
+                        Throw "Could not write output to {0}`r`n{1}" -f $OutputPath, $_.Exception.Message
                     }
                 }
             }
             catch {
-                Throw "Cant output to $Path"
+                Throw "Cant output to {0}`r`n{1}" -f $Path, $_.Exception.Message
             }
 
         } else {
